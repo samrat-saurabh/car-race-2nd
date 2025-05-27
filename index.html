@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Car Racing Game - Single & Two Player</title>
+<style>
+  body, html {
+    margin: 0; padding: 0; height: 100%; overflow: hidden;
+    font-family: Arial, sans-serif;
+    background: #111;
+    color: white;
+  }
+
+  #menuScreen, #gameOverScreen, #countdownScreen {
+    position: fixed;
+    top:0; left:0; right:0; bottom:0;
+    background: rgba(0,0,0,0.9);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 999;
+  }
+
+  #menuScreen button, #gameOverScreen button {
+    margin: 10px;
+    padding: 15px 40px;
+    font-size: 24px;
+    cursor: pointer;
+    border: none;
+    border-radius: 10px;
+    background: #f39c12;
+    color: #222;
+    transition: background 0.3s;
+  }
+  #menuScreen button:hover, #gameOverScreen button:hover {
+    background: #e67e22;
+  }
+
+  #gameArea {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    background: linear-gradient(to right,
+      #228B22 0%,       
+      #228B22 35%, 
+      #333 35%,         
+      #333 65%, 
+      #228B22 65%,      
+      #228B22 100%);
+    overflow: hidden;
+  }
+
+  #road {
+    position: absolute;
+    top: 0; left: 50%;
+    width: 300px;
+    height: 100%;
+    transform: translateX(-50%);
+    background: repeating-linear-gradient(
+      to bottom,
+      #444 0px,
+      #444 30px,
+      #555 30px,
+      #555 60px
+    );
+    animation: scrollRoad 2s linear infinite;
+    box-shadow: 0 0 10px 3px #555 inset;
+    border-left: 15px solid #ccc;
+    border-right: 15px solid #ccc;
+  }
+
+  #road::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 50%;
+    width: 10px;
+    height: 100%;
+    background: repeating-linear-gradient(
+      to bottom,
+      yellow 0px,
+      yellow 15px,
+      transparent 15px,
+      transparent 30px
+    );
+    transform: translateX(-50%);
+    animation: stripesMove 1s linear infinite;
+  }
+
+  @keyframes stripesMove {
+    0% { background-position-y: 0; }
+    100% { background-position-y: 30px; }
+  }
+
+  @keyframes scrollRoad {
+    0% { background-position-y: 0; }
+    100% { background-position-y: 60px; }
+  }
+
+  .car {
+    position: absolute;
+    bottom: 50px;
+    width: 60px;
+    height: 100px;
+    border-radius: 10px;
+    box-shadow: 0 0 10px #000;
+    z-index: 10;
+  }
+  #car1 {
+    background: red;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+  #car2 {
+    background: blue;
+    left: calc(50% + 80px);
+    transform: translateX(-50%);
+  }
+
+  .enemyCar {
+    position: absolute;
+    width: 60px;
+    height: 100px;
+    background: purple;
+    border-radius: 10px;
+    box-shadow: 0 0 8px #000;
+    z-index: 9;
+  }
+
+  #score1, #score2 {
+    position: fixed;
+    top: 10px;
+    background: rgba(255,255,255,0.9);
+    padding: 6px 12px;
+    border-radius: 5px;
+    font-weight: bold;
+    font-size: 18px;
+    color: black;
+    z-index: 101;
+  }
+
+  #score1 { left: 10px; }
+  #score2 { right: 10px; }
+
+  #gameOverScreen {
+    display: none;
+    color: white;
+    font-size: 48px;
+  }
+
+  #countdownScreen {
+    display: none;
+    color: white;
+    font-size: 60px;
+    justify-content: center;
+    align-items: center;
+    position: fixed;
+    top:0; left:0; right:0; bottom:0;
+    background: rgba(0,0,0,0.8);
+    z-index: 1000;
+  }
+
+  #countdownText {
+    font-size: 60px;
+    margin-bottom: 20px;
+  }
+
+  /* Touch zones for mobile control */
+  #touchLeft, #touchRight {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    width: 50vw;
+    z-index: 10000; /* above all */
+    opacity: 0; /* invisible but active */
+    touch-action: none; /* prevent scrolling */
+  }
+  #touchLeft {
+    left: 0;
+  }
+  #touchRight {
+    right: 0;
+  }
+</style>
+</head>
+<body>
+
+<div id="menuScreen">
+  <h1>Choose Game Mode</h1>
+  <button id="singleBtn">Single Player</button>
+  <button id="doubleBtn">Two Players</button>
+</div>
+
+<div id="countdownScreen">
+  <div id="countdownText">3</div>
+</div>
+
+<div id="gameArea" style="display:none;">
+  <div id="road"></div>
+  <div id="car1" class="car"></div>
+  <div id="car2" class="car" style="display:none;"></div>
+
+  <div id="score1" style="display:none;">Score 1: 0</div>
+  <div id="score2" style="display:none;">Score 2: 0</div>
+
+  <!-- Touch controls for mobile -->
+  <div id="touchLeft"></div>
+  <div id="touchRight"></div>
+</div>
+
+<div id="gameOverScreen">
+  <div id="gameOverMessage">Game Over! You crashed.</div>
+  <button id="restartButton">Restart</button>
+</div>
+
+<script>
+  const menuScreen = document.getElementById('menuScreen');
+  const countdownScreen = document.getElementById('countdownScreen');
+  const countdownText = document.getElementById('countdownText');
+  const gameArea = document.getElementById('gameArea');
+  const car1 = document.getElementById('car1');
+  const car2 = document.getElementById('car2');
+  const score1Display = document.getElementById('score1');
+  const score2Display = document.getElementById('score2');
+  const gameOverScreen = document.getElementById('gameOverScreen');
+  const gameOverMessage = document.getElementById('gameOverMessage');
+  const restartButton = document.getElementById('restartButton');
+  const touchLeft = document.getElementById('touchLeft');
+  const touchRight = document.getElementById('touchRight');
+
+  let enemyCars = [];
+  let gameOver = false;
+  let gameStarted = false;
+  let mode = 'single'; // default mode
+  let score1 = 0;
+  let score2 = 0;
+  let enemyInterval;
+  let scoreInterval;
+
+  let keys = {};
+
+  document.getElementById('singleBtn').addEventListener('click', () => startGameMode('single'));
+  document.getElementById('doubleBtn').addEventListener('click', () => startGameMode('double'));
+  restartButton.addEventListener('click', () => location.reload());
+
+  function startGameMode(selectedMode) {
+    mode = selectedMode;
+    menuScreen.style.display = 'none';
+    gameArea.style.display = 'block';
+
+    if (mode === 'single') {
+      car2.style.display = 'none';
+      score2Display.style.display = 'none';
+      score1Display.style.display = 'block';
+      resetPositions();
+    } else {
+      car2.style.display = 'block';
+      score2Display.style.display = 'block';
+      score1Display.style.display = 'block';
+      resetPositions();
+    }
+
+    startCountdown();
+  }
+
+  function resetPositions() {
+    const roadLeft = window.innerWidth/2 - 150;
+    car1.style.left = (roadLeft + 120) + 'px';
+    if (mode === 'double') {
+      car2.style.left = (roadLeft + 200) + 'px';
+    }
+  }
+
+  function startCountdown() {
+    countdownScreen.style.display = 'flex';
+    let count = 3;
+    countdownText.textContent = count;
+
+    const countdownInterval = setInterval(() => {
+      count--;
+      if (count > 0) {
+        countdownText.textContent = count;
+      } else {
+        clearInterval(countdownInterval);
+        countdownText.textContent = 'Go!';
+        setTimeout(() => {
+          countdownScreen.style.display = 'none';
+          startGame();
+        }, 700);
+      }
+    }, 1000);
+  }
+
+  function startGame() {
+    gameStarted = true;
+    gameOver = false;
+    score1 = 0;
+    score2 = 0;
+    score1Display.textContent = 'Score 1: 0';
+    score2Display.textContent = 'Score 2: 0';
+
+    enemyInterval = setInterval(createEnemyCar, 1500);
+    scoreInterval = setInterval(updateScore, 500);
+
+    window.requestAnimationFrame(gameLoop);
+  }
+
+  document.addEventListener('keydown', e => {
+    keys[e.key.toLowerCase()] = true;
+  });
+  document.addEventListener('keyup', e => {
+    keys[e.key.toLowerCase()] = false;
+  });
+
+  // Touch controls for mobile
+  touchLeft.addEventListener('touchstart', e => {
+    e.preventDefault();
+    keys['arrowleft'] = true;
+  });
+  touchLeft.addEventListener('touchend', e => {
+    e.preventDefault();
+    keys['arrowleft'] = false;
+  });
+  touchRight.addEventListener('touchstart', e => {
+    e.preventDefault();
+    keys['arrowright'] = true;
+  });
+  touchRight.addEventListener('touchend', e => {
+    e.preventDefault();
+    keys['arrowright'] = false;
+  });
+
+  function createEnemyCar() {
+    const enemy = document.createElement('div');
+    enemy.classList.add('enemyCar');
+    const roadLeft = window.innerWidth/2 - 150;
+
+    // Random lane (3 lanes: left, middle, right)
+    const lanePositions = [roadLeft + 40, roadLeft + 120, roadLeft + 200];
+    enemy.style.left = lanePositions[Math.floor(Math.random() * lanePositions.length)] + 'px';
+
+    enemy.style.top = '-120px';
+    gameArea.appendChild(enemy);
+    enemyCars.push(enemy);
+  }
+
+  function updateScore() {
+    if (!gameOver) {
+      score1++;
+      score1Display.textContent = 'Score 1: ' + score1;
+      if (mode === 'double') {
+        score2++;
+        score2Display.textContent = 'Score 2: ' + score2;
+      }
+    }
+  }
+
+  function gameLoop() {
+    if (gameOver) return;
+
+    movePlayerCars();
+    moveEnemies();
+    detectCollisions();
+
+    window.requestAnimationFrame(gameLoop);
+  }
+
+  function movePlayerCars() {
+    const roadLeft = window.innerWidth/2 - 150;
+    const roadRight = roadLeft + 300;
+
+    // Car1 moves left/right with arrow keys or A/D
+    if (keys['arrowleft'] || keys['a']) {
+      let newLeft = parseInt(car1.style.left) - 5;
+      if (newLeft >= roadLeft + 40) car1.style.left = newLeft + 'px';
+    }
+    if (keys['arrowright'] || keys['d']) {
+      let newLeft = parseInt(car1.style.left) + 5;
+      if (newLeft <= roadLeft + 200) car1.style.left = newLeft + 'px';
+    }
+
+    // If two player mode, move car2 with J/L keys
+    if (mode === 'double') {
+      if (keys['j']) {
+        let newLeft = parseInt(car2.style.left) - 5;
+        if (newLeft >= roadLeft + 40) car2.style.left = newLeft + 'px';
+      }
+      if (keys['l']) {
+        let newLeft = parseInt(car2.style.left) + 5;
+        if (newLeft <= roadLeft + 200) car2.style.left = newLeft + 'px';
+      }
+    }
+  }
+
+  function moveEnemies() {
+    for (let i = enemyCars.length -1; i >= 0; i--) {
+      const enemy = enemyCars[i];
+      let top = parseInt(enemy.style.top);
+      top += 5;
+      enemy.style.top = top + 'px';
+
+      if (top > window.innerHeight) {
+        enemy.remove();
+        enemyCars.splice(i, 1);
+      }
+    }
+  }
+
+  function detectCollisions() {
+    const c1Rect = car1.getBoundingClientRect();
+    const c2Rect = mode === 'double' ? car2.getBoundingClientRect() : null;
+
+    for (let enemy of enemyCars) {
+      const eRect = enemy.getBoundingClientRect();
+
+      if (rectIntersect(c1Rect, eRect)) {
+        endGame('Player 1 crashed!');
+        return;
+      }
+
+      if (mode === 'double' && rectIntersect(c2Rect, eRect)) {
+        endGame('Player 2 crashed!');
+        return;
+      }
+    }
+  }
+
+  function rectIntersect(r1, r2) {
+    return !(r2.left > r1.right ||
+             r2.right < r1.left ||
+             r2.top > r1.bottom ||
+             r2.bottom < r1.top);
+  }
+
+  function endGame(message) {
+    gameOver = true;
+    clearInterval(enemyInterval);
+    clearInterval(scoreInterval);
+    gameOverMessage.textContent = message;
+    gameOverScreen.style.display = 'flex';
+  }
+</script>
+
+</body>
+</html>

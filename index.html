@@ -3,51 +3,57 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-<title>Car Racing Game - Single & Two Player</title>
+<title>Fixed Car Racing Game for Mobile & Desktop</title>
 <style>
+  /* Basic reset */
+  * {
+    box-sizing: border-box;
+  }
   body, html {
     margin: 0; padding: 0; height: 100%;
-    font-family: Arial, sans-serif;
     background: #111;
-    color: white;
+    font-family: Arial, sans-serif;
     overflow: hidden;
+    color: white;
   }
 
+  /* Menu and overlays */
   #menuScreen, #gameOverScreen, #countdownScreen {
     position: fixed;
-    top:0; left:0; right:0; bottom:0;
-    background: rgba(0,0,0,0.9);
+    inset: 0;
+    background: rgba(0,0,0,0.95);
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    z-index: 999;
+    z-index: 1000;
   }
 
   #menuScreen button, #gameOverScreen button {
-    margin: 10px;
-    padding: 15px 40px;
     font-size: 24px;
-    cursor: pointer;
+    padding: 15px 50px;
+    margin: 15px;
     border: none;
-    border-radius: 10px;
-    background: #f39c12;
+    border-radius: 12px;
+    background: #e67e22;
     color: #222;
+    cursor: pointer;
     transition: background 0.3s;
   }
   #menuScreen button:hover, #gameOverScreen button:hover {
-    background: #e67e22;
+    background: #d35400;
   }
 
+  /* Game Area container */
   #gameArea {
     position: relative;
-    width: 100vw;
-    max-width: 400px;
-    height: 600px;
-    max-height: 90vh;
     margin: auto;
     top: 50%;
     transform: translateY(-50%);
+    width: 360px;
+    height: 640px;
+    max-width: 95vw;
+    max-height: 90vh;
     background: linear-gradient(to right,
       #228B22 0%,       
       #228B22 35%, 
@@ -55,11 +61,13 @@
       #333 65%, 
       #228B22 65%,      
       #228B22 100%);
+    border-radius: 16px;
     overflow: hidden;
-    box-shadow: 0 0 15px #000;
-    border-radius: 15px;
+    box-shadow: 0 0 20px #000;
+    user-select: none;
   }
 
+  /* Road */
   #road {
     position: absolute;
     top: 0; left: 50%;
@@ -73,11 +81,11 @@
       #555 30px,
       #555 60px
     );
-    animation: scrollRoad 2s linear infinite;
-    box-shadow: 0 0 10px 3px #555 inset;
-    border-left: 15px solid #ccc;
-    border-right: 15px solid #ccc;
-    border-radius: 10px;
+    animation: scrollRoad 1.5s linear infinite;
+    box-shadow: inset 0 0 15px 5px #222;
+    border-left: 15px solid #bbb;
+    border-right: 15px solid #bbb;
+    border-radius: 14px;
   }
 
   #road::before {
@@ -94,7 +102,7 @@
       transparent 30px
     );
     transform: translateX(-50%);
-    animation: stripesMove 1s linear infinite;
+    animation: stripesMove 0.75s linear infinite;
   }
 
   @keyframes stripesMove {
@@ -107,115 +115,110 @@
     100% { background-position-y: 60px; }
   }
 
-  .car {
+  /* Cars common style */
+  .car, .enemyCar {
     position: absolute;
-    bottom: 50px;
     width: 60px;
     height: 100px;
-    border-radius: 10px;
-    box-shadow: 0 0 10px #000;
-    z-index: 10;
+    border-radius: 14px;
+    box-shadow: 0 0 15px rgba(0,0,0,0.8);
+    bottom: 50px;
+    transition: left 0.1s linear;
+    user-select: none;
   }
+
+  /* Player cars */
   #car1 {
-    background: red;
+    background: linear-gradient(135deg, #ff0000, #cc0000);
+    left: 120px; /* start position */
+    bottom: 50px;
+    z-index: 20;
   }
   #car2 {
-    background: blue;
+    background: linear-gradient(135deg, #0000ff, #0000cc);
+    left: 200px;
+    bottom: 50px;
+    z-index: 20;
     display: none;
   }
 
+  /* Enemy cars */
   .enemyCar {
-    position: absolute;
-    width: 60px;
-    height: 100px;
-    background: purple;
-    border-radius: 10px;
-    box-shadow: 0 0 8px #000;
-    z-index: 9;
+    background: linear-gradient(135deg, #800080, #550055);
+    bottom: 700px; /* start off screen */
+    z-index: 15;
   }
 
+  /* Scores */
   #score1, #score2 {
     position: fixed;
-    top: 10px;
+    top: 12px;
     background: rgba(255,255,255,0.9);
-    padding: 6px 12px;
-    border-radius: 5px;
-    font-weight: bold;
+    padding: 8px 16px;
+    border-radius: 12px;
+    font-weight: 700;
+    color: #222;
+    user-select: none;
     font-size: 18px;
-    color: black;
-    z-index: 101;
+    z-index: 1001;
   }
+  #score1 { left: 12px; }
+  #score2 { right: 12px; }
 
-  #score1 { left: 10px; }
-  #score2 { right: 10px; }
-
-  #gameOverScreen {
+  /* Hide initially */
+  #score1, #score2 {
     display: none;
-    color: white;
-    font-size: 48px;
   }
 
+  /* Countdown */
   #countdownScreen {
-    display: none;
+    font-size: 80px;
     color: white;
-    font-size: 60px;
-    justify-content: center;
-    align-items: center;
-    position: fixed;
-    top:0; left:0; right:0; bottom:0;
-    background: rgba(0,0,0,0.8);
-    z-index: 1000;
   }
 
-  #countdownText {
-    font-size: 60px;
-    margin-bottom: 20px;
-  }
-
-  /* Mobile touch areas */
+  /* Mobile transparent touch zones for controls */
   #touchLeft, #touchRight {
     position: fixed;
     bottom: 100px;
     width: 50%;
-    height: 150px;
+    height: 160px;
     z-index: 10000;
     opacity: 0.1;
     user-select: none;
   }
-  #touchLeft {
-    left: 0;
-    background: red;
-  }
-  #touchRight {
-    right: 0;
-    background: blue;
-  }
+  #touchLeft { left: 0; background: red; }
+  #touchRight { right: 0; background: blue; }
 
 </style>
 </head>
 <body>
 
+<!-- Menu -->
 <div id="menuScreen">
   <h1>Choose Game Mode</h1>
   <button id="singleBtn">Single Player</button>
   <button id="doubleBtn">Two Players</button>
 </div>
 
-<div id="countdownScreen">
+<!-- Countdown -->
+<div id="countdownScreen" style="display:none;">
   <div id="countdownText">3</div>
 </div>
 
+<!-- Game Area -->
 <div id="gameArea" style="display:none;">
   <div id="road"></div>
   <div id="car1" class="car"></div>
   <div id="car2" class="car"></div>
-
-  <div id="score1" style="display:none;">Score 1: 0</div>
-  <div id="score2" style="display:none;">Score 2: 0</div>
 </div>
 
-<div id="gameOverScreen">
-  <div id="gameOverMessage">Game Over! You crashed.</div>
+<!-- Scores -->
+<div id="score1">Score 1: 0</div>
+<div id="score2">Score 2: 0</div>
+
+<!-- Game Over -->
+<div id="gameOverScreen" style="display:none; flex-direction: column; text-align: center;">
+  <div id="gameOverMessage" style="font-size:48px; margin-bottom: 30px;">Game Over!</div>
   <button id="restartButton">Restart</button>
 </div>
 
@@ -241,7 +244,7 @@
   let enemyCars = [];
   let gameOver = false;
   let gameStarted = false;
-  let mode = 'single'; // default mode
+  let mode = 'single';
   let score1 = 0;
   let score2 = 0;
   let enemyInterval;
@@ -249,39 +252,74 @@
 
   let keys = {};
 
+  // Event listeners for menu buttons
   document.getElementById('singleBtn').addEventListener('click', () => startGameMode('single'));
   document.getElementById('doubleBtn').addEventListener('click', () => startGameMode('double'));
   restartButton.addEventListener('click', () => location.reload());
+
+  // Keyboard input
+  document.addEventListener('keydown', e => {
+    keys[e.key.toLowerCase()] = true;
+  });
+  document.addEventListener('keyup', e => {
+    keys[e.key.toLowerCase()] = false;
+  });
+
+  // Touch controls for player 1 (A=left, D=right)
+  touchLeft.addEventListener('touchstart', e => { e.preventDefault(); keys['a'] = true; });
+  touchLeft.addEventListener('touchend', e => { e.preventDefault(); keys['a'] = false; });
+  touchRight.addEventListener('touchstart', e => { e.preventDefault(); keys['d'] = true; });
+  touchRight.addEventListener('touchend', e => { e.preventDefault(); keys['d'] = false; });
+
+  // Player 2 keys if two players mode
+  function setupPlayer2Keys(enable) {
+    if (enable) {
+      document.addEventListener('keydown', player2KeyDown);
+      document.addEventListener('keyup', player2KeyUp);
+    } else {
+      document.removeEventListener('keydown', player2KeyDown);
+      document.removeEventListener('keyup', player2KeyUp);
+    }
+  }
+  function player2KeyDown(e) {
+    if (e.key === 'ArrowLeft') keys['arrowleft'] = true;
+    if (e.key === 'ArrowRight') keys['arrowright'] = true;
+  }
+  function player2KeyUp(e) {
+    if (e.key === 'ArrowLeft') keys['arrowleft'] = false;
+    if (e.key === 'ArrowRight') keys['arrowright'] = false;
+  }
 
   function startGameMode(selectedMode) {
     mode = selectedMode;
     menuScreen.style.display = 'none';
     gameArea.style.display = 'block';
+    score1Display.style.display = 'block';
 
     if (mode === 'single') {
       car2.style.display = 'none';
       score2Display.style.display = 'none';
-      score1Display.style.display = 'block';
-      resetPositions();
+      setupPlayer2Keys(false);
     } else {
       car2.style.display = 'block';
       score2Display.style.display = 'block';
-      score1Display.style.display = 'block';
-      resetPositions();
+      setupPlayer2Keys(true);
     }
 
+    resetPositions();
     startCountdown();
   }
 
+  // Reset player cars to default positions on road
   function resetPositions() {
-    const gameAreaRect = gameArea.getBoundingClientRect();
-    const roadLeft = gameAreaRect.left + (gameAreaRect.width / 2) - 150; // 300px road width
+    // Road is 300px wide, offset from left side of gameArea container
+    const roadLeftOffset = (gameArea.clientWidth - 300) / 2;
 
-    car1.style.left = (roadLeft + 120) + 'px';
+    car1.style.left = (roadLeftOffset + 80) + 'px';
     car1.style.bottom = '50px';
 
     if (mode === 'double') {
-      car2.style.left = (roadLeft + 200) + 'px';
+      car2.style.left = (roadLeftOffset + 160) + 'px';
       car2.style.bottom = '50px';
     }
   }
@@ -314,71 +352,34 @@
     score1Display.textContent = 'Score 1: 0';
     score2Display.textContent = 'Score 2: 0';
 
-    enemyInterval = setInterval(createEnemyCar, 1500);
-    scoreInterval = setInterval(updateScore, 500);
+    enemyInterval = setInterval(createEnemyCar, 1300);
+    scoreInterval = setInterval(updateScore, 400);
 
     window.requestAnimationFrame(gameLoop);
   }
 
-  document.addEventListener('keydown', e => {
-    keys[e.key.toLowerCase()] = true;
-  });
-  document.addEventListener('keyup', e => {
-    keys[e.key.toLowerCase()] = false;
-  });
-
-  // Touch controls for mobile
-  touchLeft.addEventListener('touchstart', e => {
-    e.preventDefault();
-    keys['a'] = true;
-  });
-  touchLeft.addEventListener('touchend', e => {
-    e.preventDefault();
-    keys['a'] = false;
-  });
-  touchRight.addEventListener('touchstart', e => {
-    e.preventDefault();
-    keys['d'] = true;
-  });
-  touchRight.addEventListener('touchend', e => {
-    e.preventDefault();
-    keys['d'] = false;
-  });
-
-  if (mode === 'double') {
-    // Player 2 keys (arrow left/right)
-    document.addEventListener('keydown', e => {
-      if (e.key === 'ArrowLeft') keys['arrowleft'] = true;
-      if (e.key === 'ArrowRight') keys['arrowright'] = true;
-    });
-    document.addEventListener('keyup', e => {
-      if (e.key === 'ArrowLeft') keys['arrowleft'] = false;
-      if (e.key === 'ArrowRight') keys['arrowright'] = false;
-    });
-  }
-
+  // Create enemy car at random lane inside the road
   function createEnemyCar() {
     if (gameOver) return;
 
     const enemy = document.createElement('div');
     enemy.classList.add('enemyCar');
-    // random lane on road (between road left+10 to road left+230, lane width roughly 60px)
-    const gameAreaRect = gameArea.getBoundingClientRect();
-    const roadLeft = (gameAreaRect.width / 2) - 150;
 
-    const lanes = [roadLeft + 20, roadLeft + 90, roadLeft + 160, roadLeft + 230];
+    // Road lanes positions inside gameArea:
+    const roadLeftOffset = (gameArea.clientWidth - 300) / 2;
+    const lanes = [roadLeftOffset + 20, roadLeftOffset + 90, roadLeftOffset + 160, roadLeftOffset + 230];
     const lane = lanes[Math.floor(Math.random() * lanes.length)];
 
     enemy.style.left = lane + 'px';
-    enemy.style.bottom = gameArea.clientHeight + 'px'; // start just above view
-    gameArea.appendChild(enemy);
+    enemy.style.bottom = gameArea.clientHeight + 100 + 'px'; // start off top
 
+    gameArea.appendChild(enemy);
     enemyCars.push(enemy);
   }
 
+  // Update scores
   function updateScore() {
     if (gameOver) return;
-
     score1++;
     score1Display.textContent = 'Score 1: ' + score1;
 
@@ -388,6 +389,7 @@
     }
   }
 
+  // Main game loop
   function gameLoop() {
     if (gameOver || !gameStarted) return;
 
@@ -398,39 +400,43 @@
     window.requestAnimationFrame(gameLoop);
   }
 
+  // Move player cars based on keys pressed
   function movePlayerCars() {
-    const gameAreaRect = gameArea.getBoundingClientRect();
-    const roadLeft = (gameAreaRect.width / 2) - 150;
+    const roadLeftOffset = (gameArea.clientWidth - 300) / 2;
+    const minLeft = roadLeftOffset + 10;
+    const maxLeft = roadLeftOffset + 230;
 
-    // Move player 1 (A/D)
+    // Player 1 (A/D keys)
     let left1 = parseInt(car1.style.left);
-    if (keys['a'] && left1 > roadLeft + 10) {
-      car1.style.left = (left1 - 7) + 'px';
+    if (keys['a'] && left1 > minLeft) {
+      car1.style.left = (left1 - 8) + 'px';
     }
-    if (keys['d'] && left1 < roadLeft + 230) {
-      car1.style.left = (left1 + 7) + 'px';
+    if (keys['d'] && left1 < maxLeft) {
+      car1.style.left = (left1 + 8) + 'px';
     }
 
-    // Move player 2 (ArrowLeft/ArrowRight)
+    // Player 2 (Arrow keys)
     if (mode === 'double') {
       let left2 = parseInt(car2.style.left);
-      if (keys['arrowleft'] && left2 > roadLeft + 10) {
-        car2.style.left = (left2 - 7) + 'px';
+      if (keys['arrowleft'] && left2 > minLeft) {
+        car2.style.left = (left2 - 8) + 'px';
       }
-      if (keys['arrowright'] && left2 < roadLeft + 230) {
-        car2.style.left = (left2 + 7) + 'px';
+      if (keys['arrowright'] && left2 < maxLeft) {
+        car2.style.left = (left2 + 8) + 'px';
       }
     }
   }
 
+  // Move enemy cars downwards
   function moveEnemyCars() {
-    const speed = 5;
+    const speed = 6;
 
     enemyCars.forEach((enemy, index) => {
       let bottom = parseInt(enemy.style.bottom);
       bottom -= speed;
       enemy.style.bottom = bottom + 'px';
 
+      // Remove enemy if passed bottom of game area
       if (bottom < -120) {
         enemy.remove();
         enemyCars.splice(index, 1);
@@ -438,44 +444,50 @@
     });
   }
 
+  // Check collisions between player cars and enemy cars
   function checkCollisions() {
-    const cars = [car1];
-    if (mode === 'double') cars.push(car2);
+    const players = [car1];
+    if (mode === 'double') players.push(car2);
 
     enemyCars.forEach(enemy => {
       const enemyRect = enemy.getBoundingClientRect();
 
-      for (const car of cars) {
-        const carRect = car.getBoundingClientRect();
+      for (const player of players) {
+        const playerRect = player.getBoundingClientRect();
 
-        if (!(
-          carRect.right < enemyRect.left ||
-          carRect.left > enemyRect.right ||
-          carRect.bottom < enemyRect.top ||
-          carRect.top > enemyRect.bottom
-        )) {
+        if (!(playerRect.right < enemyRect.left ||
+              playerRect.left > enemyRect.right ||
+              playerRect.bottom < enemyRect.top ||
+              playerRect.top > enemyRect.bottom)) {
           endGame();
         }
       }
     });
   }
 
+  // End game and show game over screen
   function endGame() {
     gameOver = true;
     gameStarted = false;
     clearInterval(enemyInterval);
     clearInterval(scoreInterval);
-    gameOverScreen.style.display = 'flex';
     gameArea.style.display = 'none';
+    score1Display.style.display = 'none';
+    score2Display.style.display = 'none';
 
-    gameOverMessage.textContent = `Game Over! Your Score: Player 1 = ${score1}` + (mode === 'double' ? ` | Player 2 = ${score2}` : '');
+    let msg = `Game Over! Your Score: Player 1 = ${score1}`;
+    if (mode === 'double') msg += ` | Player 2 = ${score2}`;
+    gameOverMessage.textContent = msg;
+
+    gameOverScreen.style.display = 'flex';
   }
 
-  // Initial position setup on load or resize
+  // On resize, reset positions if game is running
   window.addEventListener('resize', () => {
-    if (gameStarted) resetPositions();
+    if (gameStarted) {
+      resetPositions();
+    }
   });
-
 </script>
 
 </body>
